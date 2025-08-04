@@ -10,7 +10,7 @@ import {SDKModel} from './SDKModel.js';
 import {Capability, type Target} from './Target.js';
 
 // [RN] Increase IO read size default
-const IO_READ_SIZE = 1024 * 1024 * 4;
+const IO_READ_SIZE = 1024 * 1024 * 16; // 15 MB
 
 export class IOModel extends SDKModel<void> {
   constructor(target: Target) {
