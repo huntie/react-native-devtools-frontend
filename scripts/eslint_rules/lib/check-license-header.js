@@ -86,6 +86,7 @@ const META_CODE_PATHS = [
   'panels/react_devtools',
   'panels/rn_welcome',
   'panels/timeline/ReactNativeTimelineLandingPage.ts',
+  'panels/timeline/RNTraceModificationsManager.ts',
 ];
 
 const OTHER_LICENSE_HEADERS = [

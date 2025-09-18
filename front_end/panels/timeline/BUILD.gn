@@ -73,6 +73,7 @@ devtools_module("timeline") {
     "ModificationsManager.ts",
     "NetworkTrackAppender.ts",
     "ReactNativeTimelineLandingPage.ts",
+    "RNTraceModificationsManager.ts",
     "SaveFileFormatter.ts",
     "TargetForEvent.ts",
     "ThirdPartyTreeView.ts",

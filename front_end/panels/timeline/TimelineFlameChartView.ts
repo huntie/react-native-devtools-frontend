@@ -23,6 +23,7 @@ import {SHOULD_SHOW_EASTER_EGG} from './EasterEgg.js';
 import {ModificationsManager} from './ModificationsManager.js';
 import * as OverlayComponents from './overlays/components/components.js';
 import * as Overlays from './overlays/overlays.js';
+import {RNTraceModificationsManager} from './RNTraceModificationsManager.js';
 import {targetForEvent} from './TargetForEvent.js';
 import {type Tab, TimelineDetailsPane} from './TimelineDetailsView.js';
 import {TimelineRegExp} from './TimelineFilters.js';
@@ -1202,6 +1203,11 @@ export class TimelineFlameChartView extends Common.ObjectWrapper.eventMixin<Even
     this.setMarkers(this.#parsedTrace);
     this.dimThirdPartiesIfRequired();
     ModificationsManager.activeManager()?.applyAnnotationsFromCache();
+
+    if (Root.Runtime.experiments.isEnabled(Root.Runtime.ExperimentName.PERFORMANCE_TRACE_INSIGHTS)) {
+      const rnManager = new RNTraceModificationsManager(this.#parsedTrace);
+      rnManager.applyTraceAnnotations();
+    }
   }
 
   setInsights(
@@ -1672,7 +1678,7 @@ export class TimelineFlameChartView extends Common.ObjectWrapper.eventMixin<Even
       return;
     }
     const index =
-        typeof this.selectedSearchResult !== 'undefined' ? this.searchResults.indexOf(this.selectedSearchResult) : -1;
+        (typeof this.selectedSearchResult !== 'undefined') ? this.searchResults.indexOf(this.selectedSearchResult) : -1;
     this.#selectSearchResult(Platform.NumberUtilities.mod(index + 1, this.searchResults.length));
   }
 

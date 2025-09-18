@@ -307,6 +307,7 @@ export enum RNExperimentName {
   JS_HEAP_PROFILER_ENABLE = 'js-heap-profiler-enable',
   ENABLE_PERFORMANCE_PANEL = 'enable-performance-panel',
   ENABLE_NETWORK_PANEL = 'enable-network-panel',
+  PERFORMANCE_TRACE_INSIGHTS = 'performance-trace-insights',
 }
 
 export enum ConditionName {
@@ -343,6 +344,7 @@ export const enum ExperimentName {
   NOT_REACT_NATIVE_SPECIFIC_UI = '!' + RNExperimentName.REACT_NATIVE_SPECIFIC_UI,
   ENABLE_PERFORMANCE_PANEL = RNExperimentName.ENABLE_PERFORMANCE_PANEL,
   ENABLE_NETWORK_PANEL = RNExperimentName.ENABLE_NETWORK_PANEL,
+  PERFORMANCE_TRACE_INSIGHTS = RNExperimentName.PERFORMANCE_TRACE_INSIGHTS,
 }
 
 export enum GenAiEnterprisePolicyValue {
