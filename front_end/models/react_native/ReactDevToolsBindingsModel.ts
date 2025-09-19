@@ -214,6 +214,7 @@ export class ReactDevToolsBindingsModel extends SDK.SDKModel.SDKModel {
         this.messagingBindingName = bindingName;
         runtimeModel.addEventListener(SDK.RuntimeModel.Events.BindingCalled, this.bindingCalled, this);
 
+        // POINTER: Ruslan added this slighty after runtime ready, we can do the same, and it's idempotent.
         return runtimeModel.agent.invoke_addBinding({name: bindingName});
       })
       .then(response => {
