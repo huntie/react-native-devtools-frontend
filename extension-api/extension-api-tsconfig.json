@@ -2,5 +2,5 @@
   "compilerOptions": {
     "composite": true
   },
-  "files": ["ExtensionAPI.d.ts"]
+  "files": ["ExtensionAPIReactNative.d.ts"]
 }
