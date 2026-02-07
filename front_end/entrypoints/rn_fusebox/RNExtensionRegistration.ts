@@ -1,0 +1,131 @@
+// Copyright (c) Meta Platforms, Inc. and affiliates.
+// Copyright 2024 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+import * as Host from '../../core/host/host.js';
+
+/**
+ * Extension descriptor shape expected in `globalThis.__DEVTOOLS_EXTENSIONS__`.
+ * This matches a subset of `Host.InspectorFrontendHostAPI.ExtensionDescriptor`
+ * with `name` and `startPage` required. Other fields are populated with
+ * defaults if omitted.
+ */
+interface RNExtensionConfig {
+  name: string;
+  startPage: string;
+}
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/naming-convention, no-var
+  var __DEVTOOLS_EXTENSIONS__: RNExtensionConfig[] | undefined;
+}
+
+/**
+ * Namespaces to remove from the injected extension API script. These are
+ * Chrome-only APIs not included in `ExtensionAPIReactNative.d.ts`.
+ */
+const DISALLOWED_API_NAMESPACES: string[] = [
+  'chrome.devtools.network',
+  'chrome.devtools.languageServices',
+  'chrome.devtools.recorder',
+  'chrome.devtools.performance',
+  'chrome.experimental',
+];
+
+/**
+ * Returns JavaScript source that deletes disallowed API namespaces from the
+ * extension's global scope.
+ */
+function buildAPICleanupScript(): string {
+  return DISALLOWED_API_NAMESPACES.map(ns => `delete ${ns};`).join('\n');
+}
+
+/**
+ * Sets up DevTools extension registration for the React Native Fusebox
+ * entrypoint. This must be called **before** `new MainImpl()` so that the
+ * host stub overrides are in place when `ExtensionServer` initialises.
+ *
+ * The mechanism:
+ * 1. Reads extension descriptors from `globalThis.__DEVTOOLS_EXTENSIONS__`
+ *    (populated by `extensionsConfig.js`, a sync script loaded before the
+ *    entrypoint).
+ * 2. Overrides `setInjectedScriptForOrigin` on the host stub to store
+ *    injection scripts keyed by origin.
+ * 3. Overrides `setAddExtensionCallback` on the host stub to capture the
+ *    callback from `ExtensionServer.initializeExtensions()`, then immediately
+ *    feeds each registered extension descriptor into it.
+ * 4. Listens for `'requestExtensionAPI'` messages from extension iframes and
+ *    responds with the stored injection script (with disallowed API namespaces
+ *    removed).
+ *
+ * Extension iframes receive their API via this PostMessage handshake rather
+ * than native injection, since Fusebox runs in a hosted (non-Chrome) context.
+ */
+export function setupRNExtensionRegistration(): void {
+  const extensions: RNExtensionConfig[] = globalThis.__DEVTOOLS_EXTENSIONS__ ?? [];
+
+  if (extensions.length === 0) {
+    return;
+  }
+
+  const hostInstance = Host.InspectorFrontendHost.InspectorFrontendHostInstance;
+  const injectedScripts = new Map<string, string>();
+  const apiCleanupScript = buildAPICleanupScript();
+
+  // Override setInjectedScriptForOrigin to store injection scripts by origin
+  // instead of the default no-op stub.
+  hostInstance.setInjectedScriptForOrigin = (origin: string, script: string): void => {
+    injectedScripts.set(origin, script);
+  };
+
+  // Override setAddExtensionCallback to intercept the callback from
+  // ExtensionServer.initializeExtensions(), then feed our extensions into it.
+  hostInstance.setAddExtensionCallback = (
+    callback: (descriptor: Host.InspectorFrontendHostAPI.ExtensionDescriptor) => void,
+  ): void => {
+    for (const ext of extensions) {
+      const descriptor: Host.InspectorFrontendHostAPI.ExtensionDescriptor = {
+        startPage: ext.startPage,
+        name: ext.name,
+        exposeExperimentalAPIs: false,
+      };
+      callback(descriptor);
+    }
+  };
+
+  // Listen for extension iframes requesting their API injection script.
+  window.addEventListener('message', (event: MessageEvent) => {
+    if (event.data !== 'requestExtensionAPI') {
+      return;
+    }
+
+    const sourceWindow = event.source as Window | null;
+    if (!sourceWindow) {
+      return;
+    }
+
+    // Determine the origin of the requesting iframe. Same-origin iframes
+    // report their origin on the event; use window.location.origin as a
+    // fallback since extensions are served from the same origin.
+    const origin = event.origin || window.location.origin;
+    const script = injectedScripts.get(origin);
+    if (!script) {
+      console.warn(
+        '[RNExtensionRegistration] No injection script found for origin:',
+        origin,
+      );
+      return;
+    }
+
+    // Build the full script: invoke the injection IIFE with a unique ID,
+    // then clean up disallowed namespaces.
+    const injectedScriptId = Date.now();
+    const fullScript = `${script}(${injectedScriptId});\n${apiCleanupScript}`;
+
+    sourceWindow.postMessage(
+      {type: 'extensionAPIInjection', script: fullScript},
+      '*',
+    );
+  });
+}

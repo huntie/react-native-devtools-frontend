@@ -13,10 +13,12 @@ devtools_module("rn_fusebox") {
     "FuseboxReconnectDeviceButton.ts",
     "FuseboxFeatureObserver.ts",
     "FuseboxWindowTitleManager.ts",
+    "RNExtensionRegistration.ts",
   ]
 
   deps = [
     "../../core/common:bundle",
+    "../../core/host:bundle",
     "../../core/i18n:bundle",
     "../../core/root:bundle",
     "../../core/sdk:bundle",

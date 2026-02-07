@@ -81,6 +81,7 @@ const META_CODE_PATHS = [
   'entrypoints/rn_fusebox',
   'entrypoints/rn_inspector',
   'entrypoints/shell/browser_compatibility_guard.ts',
+  'extensionsConfig.example.js',
   'global_typings/react_native.d.ts',
   'models/react_native',
   'panels/network/components/NetworkEventCoverageInfobar.ts',
