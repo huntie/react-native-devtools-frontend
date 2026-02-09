@@ -19,6 +19,14 @@ interface RNExtensionConfig {
 declare global {
   // eslint-disable-next-line @typescript-eslint/naming-convention, no-var
   var __DEVTOOLS_EXTENSIONS__: RNExtensionConfig[] | undefined;
+
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    DevToolsAPI?: {
+      getInspectedTabId?(): string | undefined,
+      getOriginsForbiddenForExtensions?(): string[],
+    } | undefined;
+  }
 }
 
 /**
@@ -72,6 +80,12 @@ export function setupRNExtensionRegistration(): void {
   const hostInstance = Host.InspectorFrontendHost.InspectorFrontendHostInstance;
   const injectedScripts = new Map<string, string>();
   const apiCleanupScript = buildAPICleanupScript();
+
+  // Provide a synthetic inspected tab ID so that
+  // ExtensionServer.initializeExtensions() proceeds. In Chrome, this comes
+  // from the native embedder; in Fusebox there is no tab concept.
+  window.DevToolsAPI = window.DevToolsAPI || {};
+  window.DevToolsAPI.getInspectedTabId = (): string => 'react-native';
 
   // Override setInjectedScriptForOrigin to store injection scripts by origin
   // instead of the default no-op stub.
