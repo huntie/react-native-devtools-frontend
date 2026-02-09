@@ -4,6 +4,8 @@
 // found in the LICENSE file.
 
 import * as Host from '../../core/host/host.js';
+import type * as Platform from '../../core/platform/platform.js';
+import * as SDK from '../../core/sdk/sdk.js';
 
 /**
  * Extension descriptor shape expected in `globalThis.__DEVTOOLS_EXTENSIONS__`.
@@ -40,6 +42,28 @@ const DISALLOWED_API_NAMESPACES: string[] = [
   'chrome.devtools.performance',
   'chrome.experimental',
 ];
+
+/**
+ * Returns JavaScript source that wraps `chrome.devtools.panels.create` to
+ * resolve relative resource paths against the extension's base directory.
+ *
+ * In Chrome, each extension has its own origin so relative paths resolve
+ * naturally. In Fusebox, all extensions share the DevTools origin, so
+ * `expandResourcePath` (which resolves against the bare origin) would
+ * place resources at the wrong path.
+ */
+function buildPathResolutionScript(basePath: string): string {
+  return `(function() {
+  var _basePath = ${JSON.stringify(basePath)};
+  function _resolve(p) {
+    return (!p || p.startsWith('/') || p.startsWith('http:') || p.startsWith('https:')) ? p : _basePath + p;
+  }
+  var _origCreate = chrome.devtools.panels.create;
+  chrome.devtools.panels.create = function(title, icon, page, callback) {
+    return _origCreate.call(this, title, _resolve(icon), _resolve(page), callback);
+  };
+})();`;
+}
 
 /**
  * Returns JavaScript source that deletes disallowed API namespaces from the
@@ -94,18 +118,53 @@ export function setupRNExtensionRegistration(): void {
   };
 
   // Override setAddExtensionCallback to intercept the callback from
-  // ExtensionServer.initializeExtensions(), then feed our extensions into it.
+  // ExtensionServer.initializeExtensions(). In Chrome, addExtension()
+  // checks for a non-empty inspectedURL (a Chrome tab concept). In
+  // Fusebox there is no inspected page initially, so addExtension()
+  // defers to #pendingExtensions — which are only drained on
+  // INSPECTED_URL_CHANGED, an event that may never fire. We work around
+  // this by waiting for a primary page target to appear, then calling
+  // addExtension via the captured callback.
   hostInstance.setAddExtensionCallback = (
     callback: (descriptor: Host.InspectorFrontendHostAPI.ExtensionDescriptor) => void,
   ): void => {
-    for (const ext of extensions) {
-      const descriptor: Host.InspectorFrontendHostAPI.ExtensionDescriptor = {
-        startPage: ext.startPage,
-        name: ext.name,
-        exposeExperimentalAPIs: false,
-      };
-      callback(descriptor);
+    const descriptors = extensions.map(ext => ({
+      startPage: ext.startPage,
+      name: ext.name,
+      exposeExperimentalAPIs: false,
+    } satisfies Host.InspectorFrontendHostAPI.ExtensionDescriptor));
+
+    const addAllExtensions = (): void => {
+      // addExtension() bails when inspectedURL is empty. In Fusebox,
+      // the RN target has no web page URL. Set a synthetic URL so the
+      // check passes and the extension registers normally.
+      const target = SDK.TargetManager.TargetManager.instance().primaryPageTarget();
+      if (target && !target.inspectedURL()) {
+        target.setInspectedURL(window.location.origin as Platform.DevToolsPath.UrlString);
+      }
+
+      for (const descriptor of descriptors) {
+        callback(descriptor);
+      }
+    };
+
+    // If a primary page target already exists, register immediately.
+    if (SDK.TargetManager.TargetManager.instance().primaryPageTarget()) {
+      addAllExtensions();
+      return;
     }
+
+    // Otherwise, wait for a target to appear.
+    const observer: SDK.TargetManager.Observer = {
+      targetAdded(target: SDK.Target.Target): void {
+        if (target === SDK.TargetManager.TargetManager.instance().primaryPageTarget()) {
+          SDK.TargetManager.TargetManager.instance().unobserveTargets(observer);
+          addAllExtensions();
+        }
+      },
+      targetRemoved(_target: SDK.Target.Target): void {},
+    };
+    SDK.TargetManager.TargetManager.instance().observeTargets(observer);
   };
 
   // Listen for extension iframes requesting their API injection script.
@@ -132,10 +191,23 @@ export function setupRNExtensionRegistration(): void {
       return;
     }
 
+    // Find the extension iframe that sent this message so we can derive
+    // its base directory for resolving relative resource paths.
+    let basePath = '/';
+    const iframes = document.querySelectorAll<HTMLIFrameElement>('iframe[data-devtools-extension]');
+    for (const iframe of iframes) {
+      if (iframe.contentWindow === sourceWindow) {
+        const url = new URL(iframe.src, window.location.origin);
+        basePath = url.pathname.substring(0, url.pathname.lastIndexOf('/') + 1);
+        break;
+      }
+    }
+
     // Build the full script: invoke the injection IIFE with a unique ID,
-    // then clean up disallowed namespaces.
+    // patch relative path resolution, then clean up disallowed namespaces.
     const injectedScriptId = Date.now();
-    const fullScript = `${script}(${injectedScriptId});\n${apiCleanupScript}`;
+    const fullScript =
+        `${script}(${injectedScriptId});\n${buildPathResolutionScript(basePath)}\n${apiCleanupScript}`;
 
     sourceWindow.postMessage(
       {type: 'extensionAPIInjection', script: fullScript},
