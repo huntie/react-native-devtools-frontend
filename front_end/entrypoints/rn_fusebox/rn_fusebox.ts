@@ -29,7 +29,7 @@ import * as Main from '../main/main.js';
 import * as FuseboxAppMetadataObserverModule from './FuseboxAppMetadataObserver.js';
 import * as FuseboxFeatureObserverModule from './FuseboxFeatureObserver.js';
 import * as FuseboxReconnectDeviceButtonModule from './FuseboxReconnectDeviceButton.js';
-import {setupRNExtensionRegistration} from './RNExtensionRegistration.js';
+import * as RNExtensionRegistration from './RNExtensionRegistration.js';
 
 // To ensure accurate timing measurements, please make sure these perf metrics
 // lines are called ahead of everything else
@@ -124,7 +124,7 @@ UI.ViewManager.registerViewExtension({
 
 // @ts-expect-error Exposed for legacy layout tests
 self.runtime = Root.Runtime.Runtime.instance({forceNew: true});
-setupRNExtensionRegistration();
+RNExtensionRegistration.setupRNExtensionRegistration();
 new Main.MainImpl.MainImpl();
 
 if (globalThis.FB_ONLY__reactNativeFeedbackLink) {
