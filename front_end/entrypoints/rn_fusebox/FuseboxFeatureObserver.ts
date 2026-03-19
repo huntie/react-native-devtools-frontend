@@ -102,7 +102,7 @@ export class FuseboxFeatureObserver implements
   #handleSystemStateChanged(
       event: Common.EventTarget.EventTargetEvent<Protocol.ReactNativeApplication.SystemStateChangedEvent>): void {
     const {isSingleHost} = event.data;
-    if (!isSingleHost) {
+    if (!isSingleHost && !globalThis.FB_ONLY__disableMultiHostAssertion) {
       this.#disableSingleHostOnlyFeatures();
     }
   }
