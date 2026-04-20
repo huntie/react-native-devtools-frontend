@@ -210,9 +210,16 @@ export class MainImpl {
 
     if (devToolsLocale.locale !== 'en-US') {
       // Always load en-US locale data as a fallback. This is important, newly added
-      // strings won't have a translation. If fetching en-US.json fails, something
-      // is seriously wrong and the exception should bubble up.
-      await i18n.i18n.fetchAndRegisterLocaleData('en-US');
+      // strings won't have a translation. Wrap in try-catch to handle cases where
+      // the locale file server is misconfigured or locale files are missing from the bundle.
+      try {
+        await i18n.i18n.fetchAndRegisterLocaleData('en-US');
+      } catch (error) {
+        console.error(
+            `Critical: Unable to fetch & register en-US locale data. The application may not function correctly. Cause: `,
+            error);
+        // Continue execution - the app will fall back to using string IDs if locale data is unavailable
+      }
     }
 
     try {
