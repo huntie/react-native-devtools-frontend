@@ -729,7 +729,6 @@ Common.Settings.registerSettingExtension({
 
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.RENDERING,
-  experiment: Root.Runtime.ExperimentName.NOT_REACT_NATIVE_SPECIFIC_UI,
   settingName: 'emulated-css-media-feature-prefers-color-scheme',
   settingType: Common.Settings.SettingType.ENUM,
   storageType: Common.Settings.SettingStorageType.SESSION,
