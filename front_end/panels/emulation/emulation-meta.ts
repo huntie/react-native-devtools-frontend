@@ -103,7 +103,8 @@ UI.ActionRegistration.registerActionExtension({
     const Emulation = await loadEmulationModule();
     return new Emulation.DeviceModeWrapper.ActionDelegate();
   },
-  condition: Root.Runtime.conditions.canDock,
+  // [RN] Available without docking for React Native targets.
+  // condition: Root.Runtime.conditions.canDock,
   title: i18nLazyString(UIStrings.captureScreenshot),
 });
 
