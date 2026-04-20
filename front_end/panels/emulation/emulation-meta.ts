@@ -75,6 +75,7 @@ async function loadEmulationModule(): Promise<typeof Emulation> {
 
 UI.ActionRegistration.registerActionExtension({
   category: UI.ActionRegistration.ActionCategory.MOBILE,
+  experiment: Root.Runtime.ExperimentName.NOT_REACT_NATIVE_SPECIFIC_UI,
   actionId: 'emulation.toggle-device-mode',
   toggleable: true,
   async loadActionDelegate() {
@@ -111,6 +112,7 @@ UI.ActionRegistration.registerActionExtension({
 UI.ActionRegistration.registerActionExtension({
   actionId: 'emulation.capture-full-height-screenshot',
   category: UI.ActionRegistration.ActionCategory.SCREENSHOT,
+  experiment: Root.Runtime.ExperimentName.NOT_REACT_NATIVE_SPECIFIC_UI,
   async loadActionDelegate() {
     const Emulation = await loadEmulationModule();
     return new Emulation.DeviceModeWrapper.ActionDelegate();
@@ -122,6 +124,7 @@ UI.ActionRegistration.registerActionExtension({
 UI.ActionRegistration.registerActionExtension({
   actionId: 'emulation.capture-node-screenshot',
   category: UI.ActionRegistration.ActionCategory.SCREENSHOT,
+  experiment: Root.Runtime.ExperimentName.NOT_REACT_NATIVE_SPECIFIC_UI,
   async loadActionDelegate() {
     const Emulation = await loadEmulationModule();
     return new Emulation.DeviceModeWrapper.ActionDelegate();
@@ -132,6 +135,7 @@ UI.ActionRegistration.registerActionExtension({
 
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.MOBILE,
+  experiment: Root.Runtime.ExperimentName.NOT_REACT_NATIVE_SPECIFIC_UI,
   settingName: 'show-media-query-inspector',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: false,
@@ -150,6 +154,7 @@ Common.Settings.registerSettingExtension({
 
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.MOBILE,
+  experiment: Root.Runtime.ExperimentName.NOT_REACT_NATIVE_SPECIFIC_UI,
   settingName: 'emulation.show-rulers',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: false,
@@ -168,6 +173,7 @@ Common.Settings.registerSettingExtension({
 
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.MOBILE,
+  experiment: Root.Runtime.ExperimentName.NOT_REACT_NATIVE_SPECIFIC_UI,
   settingName: 'emulation.show-device-outline',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: false,

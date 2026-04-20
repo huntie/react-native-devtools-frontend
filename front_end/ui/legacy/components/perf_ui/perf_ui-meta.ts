@@ -60,6 +60,7 @@ async function loadPerfUIModule(): Promise<typeof PerfUI> {
 UI.ActionRegistration.registerActionExtension({
   actionId: 'components.collect-garbage',
   category: UI.ActionRegistration.ActionCategory.PERFORMANCE,
+  experiment: Root.Runtime.ExperimentName.NOT_REACT_NATIVE_SPECIFIC_UI,
   title: i18nLazyString(UIStrings.collectGarbage),
   iconClass: UI.ActionRegistration.IconClass.MOP,
   async loadActionDelegate() {
